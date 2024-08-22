@@ -10,41 +10,44 @@ import {
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useWallet } from "@meshsdk/react";
 import { Else, If, Then } from "react-if";
 import ConnectWallet from "@/components/common/connect-wallet";
 import { useState } from "react";
 import { depositAsset } from "@/lib/claim-link/deposit";
-import { generateWalletAddress } from "@/lib/offchain";
+import { createWalletAndKeyPair } from "@/lib/offchain";
 import { toast } from "sonner";
-import { BrowserWallet, Transaction } from "@meshsdk/core";
+import { useCardano } from "@/components/providers/CardanoProvider";
 function CreateCardTitle() {
   return <CardTitle>Create Claimable Linik</CardTitle>;
 }
 function CreateLinkForm() {
   const [adaAmount, setAdaAmount] = useState<number>();
-  const { wallet } = useWallet();
+  const { provider } = useCardano();
   const createLink = async () => {
     if (!adaAmount) {
       toast.error("Please enter ada amount");
       return;
     }
-    const owner = (await wallet.getUsedAddress()).toBech32();
-    const newWallet = generateWalletAddress();
-    console.log(owner);
-    const redeemerAddress = newWallet.getUsedAddress().toBech32();
-    // const a = await depositAsset({
-    //   amount: adaAmount * 1_000_000,
-    //   owner: owner,
-    //   redeemer: redeemerAddress,
-    // });
-    const lace = await BrowserWallet.enable("lace");
-    console.log({ lace });
-    const tx = new Transaction({ initiator: lace });
+    if (!provider) {
+      toast.error("Please connect wallet");
+      return;
+    }
+    const owner = await provider.wallet.address();
+    console.log({ owner });
+    const newWallet = await createWalletAndKeyPair(
+      "preprodTxgDKh9LgIkr2FCy3PnH1qYWC00sIjiR",
+      "Preprod",
+    );
+    console.log({ newWallet });
+    // const redeemerAddress = newWallet.getUsedAddress().toBech32();
+    const a = await depositAsset({
+      amount: adaAmount * 1_000_000,
+      owner: owner,
+      redeemer: newWallet.address,
+      lucid: provider,
+    });
 
-    const hex = await tx.sendLovelace(redeemerAddress, "1").build();
-    console.log({ hex });
-    // console.log({ a });
+    console.log({ a });
   };
   return (
     <>
@@ -78,11 +81,11 @@ function CreateLinkForm() {
 }
 
 export default function Create() {
-  const { connected } = useWallet();
+  const { isConnected } = useCardano();
   return (
     <main className="w-screen min-h-screen flex items-center justify-center z-50">
       <Card className="w-[350px]">
-        <If condition={connected}>
+        <If condition={isConnected}>
           <Then>
             <CreateLinkForm />
           </Then>
