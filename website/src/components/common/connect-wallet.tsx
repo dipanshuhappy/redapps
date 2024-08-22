@@ -7,37 +7,39 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
-import { useWallet, useWalletList, useWalletSubmit } from "@meshsdk/react";
-import { Suspense, useEffect } from "react";
 import { toast } from "sonner";
 import { Else, If, Then } from "react-if";
-import { shortenAddress } from "@/lib/utils";
-import { QueryBoundaries } from "./query-boundaries";
-import { useQuery } from "@tanstack/react-query";
+
 import ShowWallet from "./show-wallet";
-
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { DialogHeader } from "../ui/dialog";
+import { useCardano } from "../providers/CardanoProvider";
 export default function ConnectWallet() {
-  const wallets = useWalletList();
-  const { connect, connected, connecting, disconnect, name, wallet } =
-    useWallet();
-
+  const { isConnected, isConnectLoading, connect, disconnect, wallets } =
+    useCardano();
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <If condition={connected}>
+          <If condition={isConnected}>
             <Then>
               <ShowWallet />
             </Then>
             <Else>
-              <Button loading={connecting}>Connect Wallet</Button>
+              <Button loading={isConnectLoading}>Connect Wallet</Button>
             </Else>
           </If>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <If condition={connected}>
+          <If condition={isConnected}>
             <Then>
-              <DropdownMenuLabel>{name} Connected</DropdownMenuLabel>
+              <DropdownMenuLabel>Connected</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={disconnect}>
                 Disconnect

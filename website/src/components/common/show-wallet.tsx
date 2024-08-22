@@ -1,26 +1,27 @@
 import { shortenAddress } from "@/lib/utils";
-import { useWallet } from "@meshsdk/react";
-import { useQuery } from "@tanstack/react-query";
-import { Suspense } from "react";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "../ui/button";
+import { useCardano } from "../providers/CardanoProvider";
+import { LoaderCircle } from "lucide-react";
+import { Suspense } from "react";
 import { QueryBoundaries } from "./query-boundaries";
 
-export function ShowWallet() {
-  const { wallet, connected } = useWallet();
+export default function ShowWallet() {
+  const { provider } = useCardano();
 
   const { data: address } = useQuery({
     queryKey: ["wallet-address"],
-    enabled: connected,
+    enabled: !!provider,
     queryFn: async () => {
-      if (wallet) {
-        return (await wallet.getUsedAddress()).toBech32();
+      if (provider) {
+        return await provider.wallet.address();
       }
     },
   });
 
   return (
     <QueryBoundaries>
-      <Suspense fallback={<Button loading={true}>Loading</Button>}>
+      <Suspense fallback={<LoaderCircle />}>
         <Button>{shortenAddress(address ?? "")}</Button>
       </Suspense>
     </QueryBoundaries>
