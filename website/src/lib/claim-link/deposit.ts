@@ -67,5 +67,5 @@ export async function depositAsset({
 
   const signedTx = await tx.sign().complete();
 
-  return signedTx;
+  return { signedTx, scriptAddress };
 }

@@ -15,3 +15,19 @@ export function shortenAddress(address: string, length: number = 4): string {
 
   return `${start}...${end}`;
 }
+export function shortenUrl(url: string, maxLength: number): string {
+  if (url.length <= maxLength) return url;
+
+  const urlParts = url.split(/(\/)/);
+  const protocolAndDomain = urlParts.slice(0, 3).join("");
+  const remainingPath = urlParts.slice(3).join("");
+
+  if (protocolAndDomain.length >= maxLength) {
+    return protocolAndDomain.slice(0, maxLength - 3) + "...";
+  }
+
+  const remainingLength = maxLength - protocolAndDomain.length;
+  return (
+    protocolAndDomain + remainingPath.slice(0, remainingLength - 3) + "..."
+  );
+}

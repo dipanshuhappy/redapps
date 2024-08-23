@@ -17,12 +17,20 @@ import { depositAsset } from "@/lib/claim-link/deposit";
 import { createWalletAndKeyPair } from "@/lib/offchain";
 import { toast } from "sonner";
 import { useCardano } from "@/components/providers/CardanoProvider";
+import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { shortenUrl } from "@/lib/utils";
+import { CopyButton } from "@/components/ui/copy-button";
 function CreateCardTitle() {
   return <CardTitle>Create Claimable Linik</CardTitle>;
 }
 function CreateLinkForm() {
   const [adaAmount, setAdaAmount] = useState<number>();
   const { provider } = useCardano();
+  const [url, setUrl] = useState<string>(
+    "http://localhost:3000/create?k=akljslfkjasdklfjldsajflkadsf&s=jlfsjaflajlsdfjlsdfj",
+  );
+
   const createLink = async () => {
     if (!adaAmount) {
       toast.error("Please enter ada amount");
@@ -40,14 +48,31 @@ function CreateLinkForm() {
     );
     console.log({ newWallet });
     // const redeemerAddress = newWallet.getUsedAddress().toBech32();
-    const a = await depositAsset({
+    const txSigned = await depositAsset({
       amount: adaAmount * 1_000_000,
       owner: owner,
       redeemer: newWallet.address,
       lucid: provider,
     });
 
-    console.log({ a });
+    const hash = await txSigned.signedTx.submit();
+    const loadingToast = toast.loading(
+      "Waiting for transaction to be confirmed",
+    );
+    const success = await provider.awaitTx(hash);
+    toast.dismiss(loadingToast);
+    if (success) {
+      toast.success("Transaction confirmed");
+    } else {
+      toast.error("Transaction failed");
+    }
+    const url = new URL("http://localhost:3000");
+    url.searchParams.append("s", txSigned.scriptAddress);
+    url.searchParams.append("k", newWallet.key);
+    url.searchParams.append("t", hash);
+    setUrl(url.toString());
+    console.log({ url });
+    console.log({ hash });
   };
   return (
     <>
@@ -56,7 +81,7 @@ function CreateLinkForm() {
         <CardDescription>Enter token details</CardDescription>
       </CardHeader>
       <CardContent>
-        <form>
+        <form className="my-9">
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="name">Ada Amount</Label>
@@ -72,6 +97,15 @@ function CreateLinkForm() {
             </div>
           </div>
         </form>
+
+        <If condition={!!url}>
+          <Then>
+            <span className="my-8 flex justify-center flex-col">
+              <Badge>{shortenUrl(url ?? "", 40)}</Badge>
+              <CopyButton text={url} />
+            </span>
+          </Then>
+        </If>
       </CardContent>
       <CardFooter className="flex justify-center">
         <Button onClick={createLink}>Create Link</Button>
