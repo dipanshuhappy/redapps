@@ -7,7 +7,10 @@ import {
   Data,
   Network,
   Blockfrost,
+  Address,
+  Assets,
 } from "lucid-cardano";
+import { BlockfrostProvider, FungibleAssetMetadata } from "@meshsdk/core";
 import { builtinByteString, txOutRef } from "@meshsdk/common";
 type ScriptType = "PlutusV2";
 import { applyParamsToScript } from "@meshsdk/core-csl";
@@ -66,3 +69,36 @@ export const ClaimLinkDatum = Data.Object({
   redeemer: Data.String,
 });
 export type ClaimLinkDatumType = Data.Static<typeof ClaimLinkDatum>;
+
+export async function getAssetsFromAddress(address: Address, lucid: Lucid) {
+  const utxos = await lucid.utxosAt(address);
+
+  console.log({ utxos });
+  const assets = new Map<string, bigint>();
+  utxos.forEach((utxo) => {
+    for (const [assetId, value] of Object.entries(utxo.assets)) {
+      if (!assets.has(assetId)) {
+        assets.set(assetId, BigInt(0));
+      }
+      if (!assets.get(assetId)) {
+        assets.set(assetId, BigInt(0));
+      }
+      assets.set(assetId, (assets.get(assetId) ?? BigInt(0)) + BigInt(value));
+    }
+  });
+
+  return assets as any as Assets;
+}
+
+export async function getAssetMetadata(
+  assetId: string,
+  lucid: Lucid,
+  providerId: string,
+) {
+  const blockchainProvider = new BlockfrostProvider(providerId);
+
+  const metadata: FungibleAssetMetadata =
+    await blockchainProvider.fetchAssetMetadata(assetId);
+
+  return metadata;
+}

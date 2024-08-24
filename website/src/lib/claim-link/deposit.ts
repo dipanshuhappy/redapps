@@ -10,19 +10,22 @@ export async function depositAsset({
   owner,
   amount,
   lucid,
+  assetId,
 }: {
   redeemer: string;
   owner: string;
   amount: number;
   lucid: Lucid;
+  assetId: string;
 }) {
   const utxos = await lucid.wallet.getUtxos();
   console.log({ utxos });
-
+  const outputIndex = utxos[utxos.length - 1].outputIndex;
+  const txHash = utxos[utxos.length - 1].txHash;
   const { address: scriptAddress } = getClaimLinkScript(
     {
-      outputIndex: utxos[utxos.length - 1].outputIndex,
-      txHash: utxos[utxos.length - 1].txHash,
+      outputIndex,
+      txHash,
     },
     lucid,
   );
@@ -50,6 +53,7 @@ export async function depositAsset({
     ClaimLinkDatum,
   );
 
+  console.log({ assetId });
   console.log({ datum });
 
   const tx = await lucid
@@ -58,7 +62,7 @@ export async function depositAsset({
       scriptAddress,
       { inline: datum },
       {
-        lovelace: BigInt(amount),
+        [assetId]: BigInt(amount),
       },
     )
     .complete();
@@ -67,5 +71,5 @@ export async function depositAsset({
 
   const signedTx = await tx.sign().complete();
 
-  return { signedTx, scriptAddress };
+  return { signedTx, scriptAddress, outputIndex, txHash };
 }

@@ -7,14 +7,18 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { CardSpotlight } from "@/components/ui/card-spotlight";
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Else, If, Switch, Then, Case } from "react-if";
 import ConnectWallet from "@/components/common/connect-wallet";
 import { useEffect, useState } from "react";
 import { depositAsset } from "@/lib/claim-link/deposit";
-import { createWalletAndKeyPair } from "@/lib/offchain";
+import {
+  createWalletAndKeyPair,
+  getAssetsFromAddress,
+  getAssetMetadata,
+} from "@/lib/offchain";
 import { toast } from "sonner";
 import { useCardano } from "@/components/providers/CardanoProvider";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +28,15 @@ import { CopyButton } from "@/components/ui/copy-button";
 import QrCode from "react-qr-code";
 import { FaWhatsapp, FaTelegramPlane } from "react-icons/fa";
 type Stage = "connect" | "create" | "view";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
 function CreateCardTitle() {
   return <CardTitle>Create Claimable Linik</CardTitle>;
 }
@@ -117,11 +130,12 @@ function CreateLinkForm({
   url: string;
   setUrl: React.Dispatch<React.SetStateAction<string>>;
 }) {
-  const [adaAmount, setAdaAmount] = useState<number>();
+  const [amount, setAmount] = useState<number>();
   const { provider } = useCardano();
+  const [assetId, setAssetId] = useState<string>("lovelace");
 
   const createLink = async () => {
-    if (!adaAmount) {
+    if (!amount) {
       toast.error("Please enter ada amount");
       return;
     }
@@ -138,31 +152,70 @@ function CreateLinkForm({
     console.log({ newWallet });
     // const redeemerAddress = newWallet.getUsedAddress().toBech32();
     const txSigned = await depositAsset({
-      amount: adaAmount * 1_000_000,
+      amount: assetId === "lovelace" ? amount * 1_000_000 : amount,
       owner: owner,
       redeemer: newWallet.address,
       lucid: provider,
+      assetId: assetId,
     });
 
     const hash = await txSigned.signedTx.submit();
     const loadingToast = toast.loading(
       "Waiting for transaction to be confirmed",
     );
+
     const success = await provider.awaitTx(hash);
     toast.dismiss(loadingToast);
+
     if (success) {
       toast.success("Transaction confirmed");
     } else {
       toast.error("Transaction failed");
     }
-    const url = new URL("http://localhost:3000");
-    url.searchParams.append("s", txSigned.scriptAddress);
+    const url = new URL("http://localhost:3000/redeem");
     url.searchParams.append("k", newWallet.key);
-    url.searchParams.append("t", hash);
+    url.searchParams.append("oi", txSigned.outputIndex.toString());
+    url.searchParams.append("oh", txSigned.txHash);
     setUrl(url.toString());
     console.log({ url });
     console.log({ hash });
   };
+
+  const { data: tokens } = useQuery({
+    initialData: [{ assetId: "lovelace", title: "Ada" }],
+    queryKey: ["assets"],
+    queryFn: async () => {
+      if (!provider) return [];
+      const address = await provider.wallet.address();
+      const assets = await getAssetsFromAddress(address, provider);
+
+      console.log({ assets });
+
+      console.log("arrayyy", (assets as any).keys()?.toArray());
+      const assetIdAndName: { assetId: string; title: string }[] = [
+        { assetId: "lovelace", title: "Ada" },
+      ];
+      for (const assetId of (assets as any).keys().toArray()) {
+        if (assetId !== "lovelace") {
+          const metadata = await getAssetMetadata(
+            assetId,
+            provider,
+            "preprodTxgDKh9LgIkr2FCy3PnH1qYWC00sIjiR",
+          );
+          console.log("asset", assetId);
+          console.log({ metadata });
+          assetIdAndName.push({
+            assetId,
+            title: metadata?.name ?? "Unknown",
+          });
+        }
+      }
+
+      return assetIdAndName;
+    },
+  });
+
+  console.log({ tokens });
 
   return (
     <>
@@ -174,14 +227,32 @@ function CreateLinkForm({
         <form className="my-9">
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="name">Ada Amount</Label>
+              <Select
+                onValueChange={(value) => setAssetId(value)}
+                value={assetId}
+              >
+                <SelectTrigger className="w-[180px]  mx-auto my-6">
+                  <SelectValue placeholder="Select a Token" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Select Token</SelectLabel>
+                    {tokens.map((token) => (
+                      <SelectItem value={token.assetId}>
+                        {token.title}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Label htmlFor="name">Token Amount</Label>
               <Input
                 id="amount"
                 type="number"
                 placeholder="Enter How much ada to put in link"
-                value={adaAmount}
+                value={amount}
                 onChange={(e) =>
-                  setAdaAmount(parseFloat(e.target.value.toString()))
+                  setAmount(parseFloat(e.target.value.toString()))
                 }
               />
             </div>
@@ -212,6 +283,11 @@ function CreateLink() {
 
   const [url, setUrl] = useState<string>("");
 
+  useEffect(() => {
+    if (url !== "") {
+      setStage("view");
+    }
+  }, [url]);
   return (
     <>
       <Card className="w-[350px]">
