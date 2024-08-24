@@ -1,0 +1,19 @@
+{
+  "name": "@relink-cardano/core",
+  "version": "1.0.0",
+  "description": "Awesome functions",
+  "main": "lib/index.js",
+  "scripts": {
+    "compile": "tsc"
+  },
+  "types": "lib/index.d.ts",
+  "keywords": [],
+  "author": "quramy",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}

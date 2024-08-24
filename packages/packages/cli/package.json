@@ -1,0 +1,24 @@
+{
+  "name": "@relink-cardano/cli",
+  "version": "1.0.0",
+  "description": "Awesome CLI",
+  "main": "lib/main.js",
+  "bin": {
+    "x-cli": "bin/cli.js"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "test": "node lib/main.spec.js"
+  },
+  "keywords": [],
+  "author": "quramy",
+  "license": "MIT",
+  "dependencies": {
+    "@relink-cardano/core": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "minimist": "^1.2.5"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}
