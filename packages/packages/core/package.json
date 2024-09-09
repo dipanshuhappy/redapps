@@ -1,17 +1,22 @@
 {
   "name": "@relink-cardano/core",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Awesome functions",
   "main": "lib/index.js",
+  "private": false,
   "scripts": {
     "compile": "tsc"
   },
   "types": "lib/index.d.ts",
   "keywords": [],
-  "author": "quramy",
+  "author": "Dipanshu Singh",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^20.0.0"
+    "@meshsdk/common": "^1.7.1",
+    "@meshsdk/core": "^1.6.9",
+    "@meshsdk/core-csl": "^1.6.9",
+    "@types/node": "^20.0.0",
+    "lucid-cardano": "^0.8.3"
   },
   "devDependencies": {
     "typescript": "5.5.4"
