@@ -77,11 +77,11 @@ export class Relink {
 
   async depositAndGenerateLink({ amount, assetId, owner }: { owner: string; amount: number; assetId: string }) {
     const { k, oh, oi } = await this.generateLinkValues({ amount, assetId, owner });
-
     const url = new URL(this.baseUrl);
     url.searchParams.append("k", k);
     url.searchParams.append("oi", oi.toString());
     url.searchParams.append("oh", oh);
+    return url;
   }
 
   async redeemAssetAndSubmit({ txHash, key, outputIndex }: { txHash: string; key: string; outputIndex: number }) {
